@@ -44,7 +44,7 @@
                 <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                     <h3 class="font-bold text-blue-900 mb-3">Helder</h3>
                     <div id="wrapperHelderConsumo">
-                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblHelderC">Contagem Helder (m³)</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Contagem Helder (m³)</label>
                         <input type="number" id="contagemHelder" step="0.01" min="0" placeholder="0.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
                     <div id="wrapperHelderLeituras" class="hidden space-y-3">
@@ -54,7 +54,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Leitura Anterior Helder</label>
-                            <input type="number" id="leituraAntHelder" step="0.01" min="0" placeholder="0.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <input type="number" id="leituraAntHelder" value="483" step="0.01" min="0" placeholder="483.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
                         </div>
                     </div>
                 </div>
@@ -63,7 +63,7 @@
                 <div class="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
                     <h3 class="font-bold text-purple-900 mb-3">Beatriz</h3>
                     <div id="wrapperBeatrizConsumo">
-                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblBeatrizC">Contagem Beatriz (m³)</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Contagem Beatriz (m³)</label>
                         <input type="number" id="contagemBeatriz" step="0.01" min="0" placeholder="0.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
                     </div>
                     <div id="wrapperBeatrizLeituras" class="hidden space-y-3">
@@ -73,7 +73,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Leitura Anterior Beatriz</label>
-                            <input type="number" id="leituraAntBeatriz" step="0.01" min="0" placeholder="0.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                            <input type="number" id="leituraAntBeatriz" value="0" step="0.01" min="0" placeholder="0.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
                         </div>
                     </div>
                 </div>
@@ -173,14 +173,28 @@
 
         function loadInputs() {
             const saved = localStorage.getItem('agua_calc_inputs');
-            if (!saved) return;
+            if (!saved) {
+                // Definir valores padrão iniciais se não existir memória
+                document.getElementById('leituraAntHelder').value = '483';
+                document.getElementById('leituraAntBeatriz').value = '0';
+                return;
+            }
             try {
                 const data = JSON.parse(saved);
                 if (data.mode) setMode(data.mode);
                 inputIds.forEach(id => {
                     const el = document.getElementById(id);
-                    if (el && data[id] !== undefined) el.value = data[id];
+                    if (el && data[id] !== undefined && data[id] !== "") {
+                        el.value = data[id];
+                    }
                 });
+                // Garantir defaults caso estejam vazios
+                if (!document.getElementById('leituraAntHelder').value) {
+                    document.getElementById('leituraAntHelder').value = '483';
+                }
+                if (!document.getElementById('leituraAntBeatriz').value) {
+                    document.getElementById('leituraAntBeatriz').value = '0';
+                }
             } catch (e) { console.error(e); }
         }
 
@@ -242,9 +256,10 @@
                     contagemBeatriz = parseFloat(document.getElementById('contagemBeatriz').value);
                 } else {
                     const lAtualH = parseFloat(document.getElementById('leituraAtualHelder').value) || 0;
-                    const lAntH = parseFloat(document.getElementById('leituraAntHelder').value) || 0;
+                    const lAntH = parseFloat(document.getElementById('leituraAntHelder').value) || 483;
                     const lAtualB = parseFloat(document.getElementById('leituraAtualBeatriz').value) || 0;
                     const lAntB = parseFloat(document.getElementById('leituraAntBeatriz').value) || 0;
+                    
                     contagemHelder = lAtualH - lAntH;
                     contagemBeatriz = lAtualB - lAntB;
                 }
@@ -262,12 +277,11 @@
                 }
 
                 if (contagemHelder <= 0) {
-                    errorDiv.textContent = "Atenção: A contagem/consumo do Helder deve ser superior a zero.";
+                    errorDiv.textContent = "Atenção: O consumo/contagem do Helder deve ser superior a zero.";
                     errorDiv.classList.remove('hidden');
                     return;
                 }
 
-                // O consumo geral passa a ser diretamente a contagem total do Helder
                 const consumoGeral = contagemHelder;
 
                 // Regra de Subtração
@@ -287,6 +301,15 @@
                 document.getElementById('resValorBeatriz').textContent = valorBeatriz.toFixed(2);
 
                 document.getElementById('resultContainer').classList.remove('hidden');
+
+                // Atualizar leituras anteriores automaticamente para a próxima fatura (se estiver no modo leituras)
+                if (currentMode === 'leituras') {
+                    const lAtualHVal = document.getElementById('leituraAtualHelder').value;
+                    const lAtualBVal = document.getElementById('leituraAtualBeatriz').value;
+                    if(lAtualHVal) document.getElementById('leituraAntHelder').value = lAtualHVal;
+                    if(lAtualBVal) document.getElementById('leituraAntBeatriz').value = lAtualBVal;
+                }
+                saveInputs();
 
                 // Guardar no Histórico
                 const now = new Date();
