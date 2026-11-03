@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Fatura de Água</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Favicon -->
+    <link rel="icon" href="https://fav.farm/💧" />
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen py-8 px-4">
+
+    <div class="max-w-2xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-100">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-cyan-600 to-blue-700 p-6 text-white text-center">
+            <h1 class="text-2xl font-bold">Calculadora de Fatura de Água</h1>
+            <p class="text-cyan-100 text-sm mt-1">Divisão justa e proporcional (Helder e Beatriz)</p>
+        </div>
+
+        <div class="p-6 space-y-6">
+            <!-- Modo de Entrada -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Modo de Introdução de Valores:</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button type="button" id="btnModeConsumo" onclick="setMode('consumo')" class="py-2 px-4 text-sm font-medium rounded-lg transition-all bg-blue-600 text-white shadow-sm">
+                        Consumo Direto (m³)
+                    </button>
+                    <button type="button" id="btnModeLeituras" onclick="setMode('leituras')" class="py-2 px-4 text-sm font-medium rounded-lg transition-all bg-white text-slate-700 border border-slate-300 hover:bg-slate-100">
+                        Leituras de Contador
+                    </button>
+                </div>
+            </div>
+
+            <!-- Valor Total da Fatura -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Valor Total da Fatura (€)</label>
+                <input type="number" id="valorTotal" step="0.01" min="0" placeholder="0.00" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Dados Específicos por Pessoa -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Helder -->
+                <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                    <h3 class="font-bold text-blue-900 mb-3">Helder</h3>
+                    <div id="wrapperHelderConsumo">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblHelderC">Contagem Helder (m³)</label>
+                        <input type="number" id="contagemHelder" step="0.01" min="0" placeholder="0.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div id="wrapperHelderLeituras" class="hidden space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Leitura Atual Helder</label>
+                            <input type="number" id="leituraAtualHelder" step="0.01" min="0" placeholder="0.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Leitura Anterior Helder</label>
+                            <input type="number" id="leituraAntHelder" step="0.01" min="0" placeholder="0.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Beatriz -->
+                <div class="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                    <h3 class="font-bold text-purple-900 mb-3">Beatriz</h3>
+                    <div id="wrapperBeatrizConsumo">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" id="lblBeatrizC">Contagem Beatriz (m³)</label>
+                        <input type="number" id="contagemBeatriz" step="0.01" min="0" placeholder="0.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                    </div>
+                    <div id="wrapperBeatrizLeituras" class="hidden space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Leitura Atual Beatriz</label>
+                            <input type="number" id="leituraAtualBeatriz" step="0.01" min="0" placeholder="0.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Leitura Anterior Beatriz</label>
+                            <input type="number" id="leituraAntBeatriz" step="0.01" min="0" placeholder="0.00" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botão Calcular -->
+            <button type="button" id="btnCalcular" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition shadow-lg shadow-blue-500/20">
+                Calcular Divisão Justa
+            </button>
+
+            <!-- Erro / Alerta -->
+            <div id="errorMsg" class="hidden bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl text-red-700 text-sm"></div>
+
+            <!-- Resultados -->
+            <div id="resultContainer" class="hidden space-y-6 pt-4 border-t border-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Resumo Helder -->
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                        <h4 class="font-bold text-blue-900 text-base mb-2">Helder</h4>
+                        <div class="space-y-1 text-sm text-blue-800">
+                            <p>Consumo Efetivo: <span id="resConsumoHelder" class="font-semibold">0.00</span> m³</p>
+                            <p class="text-xs text-blue-600" id="detalheHelderFormula">(Contagem - Beatriz)</p>
+                            <p class="text-lg font-bold text-blue-900 mt-2">Valor: <span id="resValorHelder">0.00</span> €</p>
+                        </div>
+                    </div>
+
+                    <!-- Resumo Beatriz -->
+                    <div class="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                        <h4 class="font-bold text-purple-900 text-base mb-2">Beatriz</h4>
+                        <div class="space-y-1 text-sm text-purple-800">
+                            <p>Consumo Efetivo: <span id="resConsumoBeatriz" class="font-semibold">0.00</span> m³</p>
+                            <p class="text-lg font-bold text-purple-900 mt-2">Valor: <span id="resValorBeatriz">0.00</span> €</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ações e Copiar -->
+                <button type="button" id="btnCopiar" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 px-4 rounded-xl transition text-sm flex items-center justify-center gap-2">
+                    <span>📋 Copiar Resumo para Partilhar</span>
+                </button>
+            </div>
+
+            <!-- Histórico -->
+            <div class="pt-6 border-t border-slate-200">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wider">Histórico de Cálculos</h3>
+                    <button type="button" id="btnClearHistory" class="text-xs text-red-600 hover:text-red-800 font-medium">Limpar Histórico</button>
+                </div>
+                <div id="historyContainer" class="space-y-3 max-h-60 overflow-y-auto pr-1">
+                    <p class="text-xs text-slate-400 text-center py-4">Ainda sem histórico gravado.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de lógica e persistência -->
+    <script>
+        let currentMode = 'consumo';
+
+        function setMode(mode) {
+            currentMode = mode;
+            const btnConsumo = document.getElementById('btnModeConsumo');
+            const btnLeituras = document.getElementById('btnModeLeituras');
+            const wrapperHC = document.getElementById('wrapperHelderConsumo');
+            const wrapperHL = document.getElementById('wrapperHelderLeituras');
+            const wrapperBC = document.getElementById('wrapperBeatrizConsumo');
+            const wrapperBL = document.getElementById('wrapperBeatrizLeituras');
+
+            if (mode === 'consumo') {
+                btnConsumo.className = "py-2 px-4 text-sm font-medium rounded-lg transition-all bg-blue-600 text-white shadow-sm";
+                btnLeituras.className = "py-2 px-4 text-sm font-medium rounded-lg transition-all bg-white text-slate-700 border border-slate-300 hover:bg-slate-100";
+                wrapperHC.classList.remove('hidden');
+                wrapperHL.classList.add('hidden');
+                wrapperBC.classList.remove('hidden');
+                wrapperBL.classList.add('hidden');
+            } else {
+                btnLeituras.className = "py-2 px-4 text-sm font-medium rounded-lg transition-all bg-blue-600 text-white shadow-sm";
+                btnConsumo.className = "py-2 px-4 text-sm font-medium rounded-lg transition-all bg-white text-slate-700 border border-slate-300 hover:bg-slate-100";
+                wrapperHC.classList.add('hidden');
+                wrapperHL.classList.remove('hidden');
+                wrapperBC.classList.add('hidden');
+                wrapperBL.classList.remove('hidden');
+            }
+            saveInputs();
+        }
+
+        const inputIds = ['valorTotal', 'contagemHelder', 'contagemBeatriz', 'leituraAtualHelder', 'leituraAntHelder', 'leituraAtualBeatriz', 'leituraAntBeatriz'];
+
+        function saveInputs() {
+            const data = { mode: currentMode };
+            inputIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) data[id] = el.value;
+            });
+            localStorage.setItem('agua_calc_inputs', JSON.stringify(data));
+        }
+
+        function loadInputs() {
+            const saved = localStorage.getItem('agua_calc_inputs');
+            if (!saved) return;
+            try {
+                const data = JSON.parse(saved);
+                if (data.mode) setMode(data.mode);
+                inputIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && data[id] !== undefined) el.value = data[id];
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function getHistory() {
+            try {
+                return JSON.parse(localStorage.getItem('agua_calc_history') || '[]');
+            } catch(e) { return []; }
+        }
+
+        function saveHistory(entry) {
+            let history = getHistory();
+            history.unshift(entry);
+            if (history.length > 10) history = history.slice(0, 10);
+            localStorage.setItem('agua_calc_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyContainer');
+            const history = getHistory();
+            if (history.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Ainda sem histórico gravado.</p>';
+                return;
+            }
+            container.innerHTML = history.map((item) => `
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-1">
+                    <div class="flex justify-between font-semibold text-slate-700">
+                        <span>${item.date}</span>
+                        <span>Total: ${item.totalEur} €</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 pt-1 text-slate-600">
+                        <div>Helder: ${item.valHelder} € (${item.consHelder} m³)</div>
+                        <div>Beatriz: ${item.valBeatriz} € (${item.consBeatriz} m³)</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInputs();
+            renderHistory();
+
+            inputIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', saveInputs);
+            });
+
+            document.getElementById('btnCalcular').addEventListener('click', () => {
+                const errorDiv = document.getElementById('errorMsg');
+                errorDiv.classList.add('hidden');
+
+                const valorTotal = parseFloat(document.getElementById('valorTotal').value);
+
+                let contagemHelder = 0;
+                let contagemBeatriz = 0;
+
+                if (currentMode === 'consumo') {
+                    contagemHelder = parseFloat(document.getElementById('contagemHelder').value);
+                    contagemBeatriz = parseFloat(document.getElementById('contagemBeatriz').value);
+                } else {
+                    const lAtualH = parseFloat(document.getElementById('leituraAtualHelder').value) || 0;
+                    const lAntH = parseFloat(document.getElementById('leituraAntHelder').value) || 0;
+                    const lAtualB = parseFloat(document.getElementById('leituraAtualBeatriz').value) || 0;
+                    const lAntB = parseFloat(document.getElementById('leituraAntBeatriz').value) || 0;
+                    contagemHelder = lAtualH - lAntH;
+                    contagemBeatriz = lAtualB - lAntB;
+                }
+
+                if (isNaN(valorTotal) || isNaN(contagemHelder) || isNaN(contagemBeatriz)) {
+                    errorDiv.textContent = "Por favor, preencha todos os campos obrigatórios corretamente.";
+                    errorDiv.classList.remove('hidden');
+                    return;
+                }
+
+                if (contagemBeatriz > contagemHelder) {
+                    errorDiv.textContent = "Atenção: O consumo da Beatriz não pode ser superior à contagem registada do Helder.";
+                    errorDiv.classList.remove('hidden');
+                    return;
+                }
+
+                if (contagemHelder <= 0) {
+                    errorDiv.textContent = "Atenção: A contagem/consumo do Helder deve ser superior a zero.";
+                    errorDiv.classList.remove('hidden');
+                    return;
+                }
+
+                // O consumo geral passa a ser diretamente a contagem total do Helder
+                const consumoGeral = contagemHelder;
+
+                // Regra de Subtração
+                const consumoHelderEfetivo = contagemHelder - contagemBeatriz;
+                const consumoBeatrizEfetivo = contagemBeatriz;
+
+                const precoPorMetro = valorTotal / consumoGeral;
+                const valorHelder = consumoHelderEfetivo * precoPorMetro;
+                const valorBeatriz = consumoBeatrizEfetivo * precoPorMetro;
+
+                // Mostrar resultados
+                document.getElementById('resConsumoHelder').textContent = consumoHelderEfetivo.toFixed(2);
+                document.getElementById('detalheHelderFormula').textContent = `(${contagemHelder.toFixed(2)} - ${contagemBeatriz.toFixed(2)} m³)`;
+                document.getElementById('resValorHelder').textContent = valorHelder.toFixed(2);
+
+                document.getElementById('resConsumoBeatriz').textContent = consumoBeatrizEfetivo.toFixed(2);
+                document.getElementById('resValorBeatriz').textContent = valorBeatriz.toFixed(2);
+
+                document.getElementById('resultContainer').classList.remove('hidden');
+
+                // Guardar no Histórico
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('pt-PT') + ' ' + now.toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
+                saveHistory({
+                    date: dateStr,
+                    totalEur: valorTotal.toFixed(2),
+                    consHelder: consumoHelderEfetivo.toFixed(2),
+                    valHelder: valorHelder.toFixed(2),
+                    consBeatriz: consumoBeatrizEfetivo.toFixed(2),
+                    valBeatriz: valorBeatriz.toFixed(2)
+                });
+            });
+
+            document.getElementById('btnClearHistory').addEventListener('click', () => {
+                if (confirm('Tens a certeza que pretendes limpar todo o histórico?')) {
+                    localStorage.removeItem('agua_calc_history');
+                    renderHistory();
+                }
+            });
+
+            document.getElementById('btnCopiar').addEventListener('click', () => {
+                const vTotal = document.getElementById('valorTotal').value;
+                const cHelder = document.getElementById('resConsumoHelder').textContent;
+                const valHelder = document.getElementById('resValorHelder').textContent;
+                const cBeatriz = document.getElementById('resConsumoBeatriz').textContent;
+                const valBeatriz = document.getElementById('resValorBeatriz').textContent;
+
+                const texto = `💧 *Resumo Fatura de Água*\n` +
+                              `• Total Fatura: ${vTotal} €\n\n` +
+                              `👤 *Helder*:\n` +
+                              `- Consumo: ${cHelder} m³\n` +
+                              `- A pagar: ${valHelder} €\n\n` +
+                              `👤 *Beatriz*:\n` +
+                              `- Consumo: ${cBeatriz} m³\n` +
+                              `- A pagar: ${valBeatriz} €`;
+
+                navigator.clipboard.writeText(texto).then(() => {
+                    const btn = document.getElementById('btnCopiar');
+                    btn.textContent = "Copiado com sucesso! ✅";
+                    setTimeout(() => {
+                        btn.innerHTML = "<span>📋 Copiar Resumo para Partilhar</span>";
+                    }, 2000);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
