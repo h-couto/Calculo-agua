@@ -8,6 +8,38 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Favicon -->
     <link rel="icon" href="https://fav.farm/💧" />
+    
+    <!-- Configurações para abrir como App em Ecrã Inteiro -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Água">
+    
+    <!-- Manifesto dinâmico para remover barras -->
+    <script>
+        const manifestData = {
+            "name": "Calculadora de Fatura de Água",
+            "short_name": "Água",
+            "start_url": "./",
+            "display": "standalone",
+            "background_color": "#f8fafc",
+            "theme_color": "#0284c7",
+            "icons": [
+                {
+                    "src": "https://fav.farm/💧",
+                    "sizes": "192x192",
+                    "type": "image/svg+xml"
+                }
+            ]
+        };
+        const stringManifest = JSON.stringify(manifestData);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestURL;
+        document.head.appendChild(link);
+    </script>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen py-8 px-4">
 
@@ -174,7 +206,6 @@
         function loadInputs() {
             const saved = localStorage.getItem('agua_calc_inputs');
             if (!saved) {
-                // Definir valores padrão iniciais se não existir memória
                 document.getElementById('leituraAntHelder').value = '483';
                 document.getElementById('leituraAntBeatriz').value = '0';
                 return;
@@ -188,7 +219,6 @@
                         el.value = data[id];
                     }
                 });
-                // Garantir defaults caso estejam vazios
                 if (!document.getElementById('leituraAntHelder').value) {
                     document.getElementById('leituraAntHelder').value = '483';
                 }
@@ -302,7 +332,6 @@
 
                 document.getElementById('resultContainer').classList.remove('hidden');
 
-                // Atualizar leituras anteriores automaticamente para a próxima fatura (se estiver no modo leituras)
                 if (currentMode === 'leituras') {
                     const lAtualHVal = document.getElementById('leituraAtualHelder').value;
                     const lAtualBVal = document.getElementById('leituraAtualBeatriz').value;
@@ -311,7 +340,6 @@
                 }
                 saveInputs();
 
-                // Guardar no Histórico
                 const now = new Date();
                 const dateStr = now.toLocaleDateString('pt-PT') + ' ' + now.toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
                 saveHistory({
