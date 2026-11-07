@@ -150,9 +150,8 @@
 
             <!-- Histórico -->
             <div class="pt-6 border-t border-slate-200">
-                <div class="flex justify-between items-center mb-3">
+                <div class="mb-3">
                     <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wider">Histórico de Cálculos</h3>
-                    <button type="button" id="btnClearHistory" class="text-xs text-red-600 hover:text-red-800 font-medium">Limpar Histórico</button>
                 </div>
                 <div id="historyContainer" class="space-y-3 max-h-60 overflow-y-auto pr-1">
                     <p class="text-xs text-slate-400 text-center py-4">Ainda sem histórico gravado.</p>
@@ -350,13 +349,6 @@
                     consBeatriz: consumoBeatrizEfetivo.toFixed(2),
                     valBeatriz: valorBeatriz.toFixed(2)
                 });
-            });
-
-            document.getElementById('btnClearHistory').addEventListener('click', () => {
-                if (confirm('Tens a certeza que pretendes limpar todo o histórico?')) {
-                    localStorage.removeItem('agua_calc_history');
-                    renderHistory();
-                }
             });
 
             document.getElementById('btnCopiar').addEventListener('click', () => {
