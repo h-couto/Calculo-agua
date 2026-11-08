@@ -48,6 +48,10 @@
         <div class="bg-gradient-to-r from-cyan-600 to-blue-700 p-6 text-white text-center">
             <h1 class="text-2xl font-bold">Calculadora de Fatura de Água</h1>
             <p class="text-cyan-100 text-sm mt-1">Divisão justa e proporcional (Helder e Beatriz)</p>
+            <div id="syncStatus" class="text-xs text-cyan-200 mt-2 flex items-center justify-center gap-1">
+                <span class="inline-block w-2 h-2 rounded-full bg-amber-400" id="syncDot"></span>
+                <span id="syncText">A ligar em tempo real...</span>
+            </div>
         </div>
 
         <div class="p-6 space-y-6">
@@ -160,11 +164,37 @@
         </div>
     </div>
 
-    <!-- Script de lógica e persistência -->
-    <script>
+    <!-- Firebase SDK (Modular v10) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // NOTA: Para colocar online com sincronização real, substitui estes dados pelos do teu projeto gratuito do Firebase
+        const firebaseConfig = {
+            apiKey: "SUBSTITUI_PELO_TEU_API_KEY",
+            authDomain: "SUBSTITUI_PELO_TEU_AUTH_DOMAIN",
+            projectId: "SUBSTITUI_PELO_TEU_PROJECT_ID",
+            storageBucket: "SUBSTITUI_PELO_TEU_STORAGE_BUCKET",
+            messagingSenderId: "SUBSTITUI_PELO_TEU_MESSAGING_SENDER_ID",
+            appId: "SUBSTITUI_PELO_TEU_APP_ID"
+        };
+
+        let db = null;
+        let isRemoteUpdate = false;
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            document.getElementById('syncDot').className = "inline-block w-2 h-2 rounded-full bg-emerald-500";
+            document.getElementById('syncText').textContent = "Sincronizado em tempo real";
+        } catch (e) {
+            document.getElementById('syncDot').className = "inline-block w-2 h-2 rounded-full bg-amber-500";
+            document.getElementById('syncText').textContent = "Modo local (Configura o Firebase para sincronizar)";
+        }
+
         let currentMode = 'consumo';
 
-        function setMode(mode) {
+        window.setMode = function(mode) {
             currentMode = mode;
             const btnConsumo = document.getElementById('btnModeConsumo');
             const btnLeituras = document.getElementById('btnModeLeituras');
@@ -188,63 +218,38 @@
                 wrapperBC.classList.add('hidden');
                 wrapperBL.classList.remove('hidden');
             }
-            saveInputs();
+            saveData();
         }
 
         const inputIds = ['valorTotal', 'contagemHelder', 'contagemBeatriz', 'leituraAtualHelder', 'leituraAntHelder', 'leituraAtualBeatriz', 'leituraAntBeatriz'];
 
-        function saveInputs() {
-            const data = { mode: currentMode };
+        async function saveData() {
+            if (isRemoteUpdate) return;
+            const data = { mode: currentMode, history: window.calcHistory || [] };
             inputIds.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) data[id] = el.value;
             });
+
+            // Guardar localmente como backup imediato
             localStorage.setItem('agua_calc_inputs', JSON.stringify(data));
-        }
 
-        function loadInputs() {
-            const saved = localStorage.getItem('agua_calc_inputs');
-            if (!saved) {
-                document.getElementById('leituraAntHelder').value = '483';
-                document.getElementById('leituraAntBeatriz').value = '0';
-                return;
+            // Sincronizar na nuvem se o Firebase estiver configurado
+            if (db) {
+                try {
+                    await setDoc(doc(db, "calculadora", "agua_data"), data);
+                } catch (e) {
+                    console.error("Erro ao sincronizar:", e);
+                }
             }
-            try {
-                const data = JSON.parse(saved);
-                if (data.mode) setMode(data.mode);
-                inputIds.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el && data[id] !== undefined && data[id] !== "") {
-                        el.value = data[id];
-                    }
-                });
-                if (!document.getElementById('leituraAntHelder').value) {
-                    document.getElementById('leituraAntHelder').value = '483';
-                }
-                if (!document.getElementById('leituraAntBeatriz').value) {
-                    document.getElementById('leituraAntBeatriz').value = '0';
-                }
-            } catch (e) { console.error(e); }
         }
 
-        function getHistory() {
-            try {
-                return JSON.parse(localStorage.getItem('agua_calc_history') || '[]');
-            } catch(e) { return []; }
-        }
-
-        function saveHistory(entry) {
-            let history = getHistory();
-            history.unshift(entry);
-            if (history.length > 10) history = history.slice(0, 10);
-            localStorage.setItem('agua_calc_history', JSON.stringify(history));
-            renderHistory();
-        }
+        window.calcHistory = [];
 
         function renderHistory() {
             const container = document.getElementById('historyContainer');
-            const history = getHistory();
-            if (history.length === 0) {
+            const history = window.calcHistory;
+            if (!history || history.length === 0) {
                 container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Ainda sem histórico gravado.</p>';
                 return;
             }
@@ -262,13 +267,46 @@
             `).join('');
         }
 
+        // Ouvir alterações em tempo real do Firebase
+        if (db) {
+            onSnapshot(doc(db, "calculadora", "agua_data"), (docSnap) => {
+                if (docSnap.exists()) {
+                    isRemoteUpdate = true;
+                    const data = docSnap.data();
+                    if (data.mode) window.setMode(data.mode);
+                    inputIds.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && data[id] !== undefined) el.value = data[id];
+                    });
+                    if (data.history) {
+                        window.calcHistory = data.history;
+                        renderHistory();
+                    }
+                    isRemoteUpdate = false;
+                }
+            });
+        } else {
+            // Carregar do localStorage se o Firebase não estiver configurado
+            const saved = localStorage.getItem('agua_calc_inputs');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.mode) window.setMode(data.mode);
+                    inputIds.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && data[id] !== undefined) el.value = data[id];
+                    });
+                } catch(e) {}
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            loadInputs();
-            renderHistory();
+            if (!document.getElementById('leituraAntHelder').value) document.getElementById('leituraAntHelder').value = '483';
+            if (!document.getElementById('leituraAntBeatriz').value) document.getElementById('leituraAntBeatriz').value = '0';
 
             inputIds.forEach(id => {
                 const el = document.getElementById(id);
-                if (el) el.addEventListener('input', saveInputs);
+                if (el) el.addEventListener('input', saveData);
             });
 
             document.getElementById('btnCalcular').addEventListener('click', () => {
@@ -294,7 +332,7 @@
                 }
 
                 if (isNaN(valorTotal) || isNaN(contagemHelder) || isNaN(contagemBeatriz)) {
-                    errorDiv.textContent = "Por favor, preencha todos os campos obrigatórios corretamente.";
+                    errorDiv.textContent = "Por favor, preencha todos los campos obrigatórios corretamente.";
                     errorDiv.classList.remove('hidden');
                     return;
                 }
@@ -312,8 +350,6 @@
                 }
 
                 const consumoGeral = contagemHelder;
-
-                // Regra de Subtração
                 const consumoHelderEfetivo = contagemHelder - contagemBeatriz;
                 const consumoBeatrizEfetivo = contagemBeatriz;
 
@@ -321,7 +357,6 @@
                 const valorHelder = consumoHelderEfetivo * precoPorMetro;
                 const valorBeatriz = consumoBeatrizEfetivo * precoPorMetro;
 
-                // Mostrar resultados
                 document.getElementById('resConsumoHelder').textContent = consumoHelderEfetivo.toFixed(2);
                 document.getElementById('detalheHelderFormula').textContent = `(${contagemHelder.toFixed(2)} - ${contagemBeatriz.toFixed(2)} m³)`;
                 document.getElementById('resValorHelder').textContent = valorHelder.toFixed(2);
@@ -337,11 +372,12 @@
                     if(lAtualHVal) document.getElementById('leituraAntHelder').value = lAtualHVal;
                     if(lAtualBVal) document.getElementById('leituraAntBeatriz').value = lAtualBVal;
                 }
-                saveInputs();
 
                 const now = new Date();
                 const dateStr = now.toLocaleDateString('pt-PT') + ' ' + now.toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
-                saveHistory({
+                
+                if (!window.calcHistory) window.calcHistory = [];
+                window.calcHistory.unshift({
                     date: dateStr,
                     totalEur: valorTotal.toFixed(2),
                     consHelder: consumoHelderEfetivo.toFixed(2),
@@ -349,6 +385,10 @@
                     consBeatriz: consumoBeatrizEfetivo.toFixed(2),
                     valBeatriz: valorBeatriz.toFixed(2)
                 });
+                if (window.calcHistory.length > 10) window.calcHistory = window.calcHistory.slice(0, 10);
+
+                renderHistory();
+                saveData();
             });
 
             document.getElementById('btnCopiar').addEventListener('click', () => {
